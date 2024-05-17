@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name | dump }}
+  annotations:
+    github.com/project-slug: riya259/alb-catalogue
+    backstage.io/techdocs-ref: dir:.
+  title: 'ALB Creation'
+  description: ALB creation for poc purpose.
+spec:
+  type: service
+  owner: user:guest
+  lifecycle: experimental

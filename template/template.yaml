@@ -1,0 +1,102 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-alb
+  title: Create ALB
+  description: Create an Application Load Balancer for POC
+  tags: ['recommended']
+spec:
+  owner: guests
+  type: service
+  parameters:
+    - title: AWS VPC Config
+      properties:
+        vpcId:
+          title: VPC ID
+          description: Enter the VPC id where the ALB will be created.
+          type: string
+          format: aws-vpc-id
+          ui:autofocus: true
+        subnetIds:
+          title: Subnet IDs
+          description: Enter the subnet ids where the ALB will be created.
+          type: array
+          items:
+            type: string
+          minItems: 2
+        securityGroupId:
+          title: Security Group ID
+          description: Enter the security group ID for the ALB.
+          type: string
+          format: aws-sg-id
+        loadBalancerName:
+          title: Load Balancer Name
+          description: The name of the ALB.
+          type: string
+          ui:options:
+            rows: 5
+
+    - title: Choose a Repository Location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Location of the repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+
+  steps:
+# Getting the all the files/details from the template
+    - id: fetch-base
+      name: Fetching Details from content folder
+      action: fetch:template
+      input:
+        url: ./content  # Location of the content directory where catlog-info.yaml file is present for the template
+        values:
+          name: ${{ parameters.loadBalancerName}}
+
+# Publish the content of the current working directory to our github directory
+    - id: publish
+      name: Publishing Details
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: This repo is to create an application load balancer ${{ parameters.loadBalancerName }} using backstage.
+        repoUrl: ${{ parameters.repoUrl }}
+        repoVisibility: public # or 'internal' or 'private'
+        # defaultBranch: master
+
+# Triggering CI-CD to create resource in our case github action.
+    - id: github-action
+      name: Starting GitHub action
+      action: github:actions:dispatch
+      input:
+        workflowId:  alb.yml # ID of GitHub action WorkFlow
+        repoUrl: 'github.com?repo=alb-catalogue&owner=riya259'
+        branchOrTagName: 'main'
+        workflowInputs:
+          vpcid: ${{ parameters.vpcId }}
+          subnetid: ${{ parameters.subnetIds }}
+          sgid: ${{ parameters.securityGroupId }}
+          albname: ${{ parameters.loadBalancerName }}
+
+# Registering new component in the catalog of backstage.
+    - id: register
+      name: Registering the new Component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: '/component-info.yaml' # where the info of the catalog is stored.
+
+# Output links  are displayed to the user after the template execution.
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
