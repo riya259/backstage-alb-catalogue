@@ -50,6 +50,19 @@ spec:
 
 
   steps:
+    - id: deploy
+      name: Deploy ALB
+      action: aws:deploy-cloudformation-stack
+      input:
+        region: us-west-1
+        stackName: my-alb-stack
+        templatePath: alb-cft.json
+        parameters:
+          VpcId: ${{ parameters.vpcId }}
+          SubnetIds: ${{ parameters.subnetIds }}
+          SecurityGroupId: ${{ parameters.securityGroupId }}
+          LoadBalancerName: ${{ parameters.loadBalancerName }}
+
 # Getting the all the files/details from the template
     - id: fetch-base
       name: Fetching Details from content folder
